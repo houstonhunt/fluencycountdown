@@ -4,11 +4,12 @@
 
 import wx
 import ConfigParser
+import ast # for parsing in list data structure from config file
 
 class MainWindow(wx.Frame):
 
 	def __init__(self, parent, title):
-		wx.Frame.__init__(self, parent, title=title, size=(250,150))
+		wx.Frame.__init__(self, parent, title=title, size=(275,150))
 
 		self.InitUI()
 
@@ -30,7 +31,6 @@ class MainWindow(wx.Frame):
 		menuBar = wx.MenuBar()
 		menuBar.Append(fmenu, "&File")
 		self.SetMenuBar(menuBar)
-		self.Show(True)
 
 		# create sizers
 		vSizer = wx.BoxSizer(wx.VERTICAL)
@@ -41,17 +41,38 @@ class MainWindow(wx.Frame):
 		self.staticText.Wrap(-1)
 		hSizer.Add(self.staticText, 0, wx.ALL, 5)
 
-		choice_list = ['Afrikaans', 'Catalan']
+		# populate choice list from config file
+		choice_list = []
+		choice_list.append('')
+		choice_list.append('--category 1--')
+		choice_list.extend(ast.literal_eval(config.get('Languages', 'cat1')))
+		choice_list.append('--category 2--')
+		choice_list.extend(ast.literal_eval(config.get('Languages', 'cat2')))
+		choice_list.append('--category 3--')
+		choice_list.extend(ast.literal_eval(config.get('Languages', 'cat3')))
+		choice_list.append('-- other --')
+		choice_list.extend(ast.literal_eval(config.get('Languages', 'other')))
+
+		# add choice to window
 		self.choice = wx.Choice(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, choice_list, 0) 
 		hSizer.Add(self.choice, 0, wx.ALL, 5)
 
-		self.SetSizer(vSizer)
-		self.SetSizer(hSizer)
-		self.Layout()
-		self.Centre(wx.BOTH)
+		vSizer.Add(hSizer, 1, wx.ALIGN_CENTER, 5)
 		
-		# drop down list
-		self = wx.Choice(self, -1, (100, 100), (75, -1))
+		# add language time to completion text
+		self.staticText2 = wx.StaticText(self, wx.ID_ANY, "Estimated time: 2200 hrs", wx.DefaultPosition, wx.DefaultSize, 0)
+		self.staticText2.Wrap(-1)
+		vSizer.Add(self.staticText2, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+
+		# add button
+		self.start_pause_button = wx.Button(self, wx.ID_ANY, "Start", wx.DefaultPosition, wx.DefaultSize, 0)
+		vSizer.Add(self.start_pause_button, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+
+		self.SetSizer(vSizer)
+		self.Layout()
+
+		self.Centre(wx.BOTH)
+		self.Show(True)
 
 app = wx.App(False)
 frame = MainWindow(None, "Fluency Countdown")

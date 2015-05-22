@@ -3,23 +3,27 @@
 # fluencycountdown.py
 
 import wx
+import datetime
+import time
 import ConfigParser
 import ast # for parsing in list data structure from config file
+from functools import partial
 
 class MainWindow(wx.Frame):
 
 	def __init__(self, parent, title):
-		wx.Frame.__init__(self, parent, title=title, size=(275,150))
+		wx.Frame.__init__(self, parent, title=title, size=(325,150))
+
+		# define time2fluency
+		self.time2fluency = 2000
 
 		self.InitUI()
 
 	def InitUI(self):
+
 		# setup config parser
 		config = ConfigParser.ConfigParser()
 		config.read('lang.cfg')
-
-		# main window text
-		text1 = "Choose a Language you would like to learn"
 
 		# menu items setup
 		fmenu = wx.Menu()
@@ -37,7 +41,7 @@ class MainWindow(wx.Frame):
 		hSizer = wx.BoxSizer(wx.HORIZONTAL)
 
 		# create static text
-		self.staticText = wx.StaticText(self, wx.ID_ANY, "Pick a Language:", wx.DefaultPosition, wx.DefaultSize, 0)
+		self.staticText = wx.StaticText(self, wx.ID_ANY, "Pick a Language:", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_LEFT)
 		self.staticText.Wrap(-1)
 		hSizer.Add(self.staticText, 0, wx.ALL, 5)
 
@@ -55,18 +59,24 @@ class MainWindow(wx.Frame):
 
 		# add choice to window
 		self.choice = wx.Choice(self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, choice_list, 0) 
+		self.choice.Bind(wx.EVT_CHOICE, partial(self.onChoice, conf = config))
 		hSizer.Add(self.choice, 0, wx.ALL, 5)
 
 		vSizer.Add(hSizer, 1, wx.ALIGN_CENTER, 5)
 		
 		# add language time to completion text
-		self.staticText2 = wx.StaticText(self, wx.ID_ANY, "Estimated time: 2200 hrs", wx.DefaultPosition, wx.DefaultSize, 0)
+		self.staticText2 = wx.StaticText(self, wx.ID_ANY, "Estimated time: hrs", wx.DefaultPosition, wx.DefaultSize, wx.ALIGN_LEFT)
 		self.staticText2.Wrap(-1)
 		vSizer.Add(self.staticText2, 0, wx.ALIGN_CENTER | wx.ALL, 5)
 
+		# create timer
+		self.timer = wx.Timer(self)
+		self.Bind(wx.EVT_TIMER, self.update, self.timer)
+
 		# add button
-		self.start_pause_button = wx.Button(self, wx.ID_ANY, "Start", wx.DefaultPosition, wx.DefaultSize, 0)
-		vSizer.Add(self.start_pause_button, 0, wx.ALIGN_CENTER | wx.ALL, 5)
+		self.start_stop_button = wx.Button(self, wx.ID_ANY, "Start", wx.DefaultPosition, wx.DefaultSize, 0)
+		self.start_stop_button.Bind(wx.EVT_BUTTON, self.startStop)
+		vSizer.Add(self.start_stop_button, 0, wx.ALIGN_CENTER | wx.ALL, 5)
 
 		self.SetSizer(vSizer)
 		self.Layout()
@@ -74,7 +84,37 @@ class MainWindow(wx.Frame):
 		self.Centre(wx.BOTH)
 		self.Show(True)
 
+	# language picked
+	def onChoice(self, event, conf):
+		choice = self.choice.GetStringSelection()
+		if conf.get('Languages', 'cat1').find(choice) != -1: 
+			self.staticText2.SetLabel(conf.get('Languages', 'desc1'))
+			self.time2fluency = datetime.timedelta(hours=600)
+		elif conf.get('Languages', 'cat2').find(choice) != -1: 
+			self.staticText2.SetLabel(conf.get('Languages', 'desc2'))
+			self.time2fluency = datetime.timedelta(hours=1100)
+		elif conf.get('Languages', 'cat3').find(choice) != -1: 
+			self.staticText2.SetLabel(conf.get('Languages', 'desc3'))
+			self.time2fluency = datetime.timedelta(hours=2200)
+		elif conf.get('Languages', 'other').find(choice) != -1: 
+			self.staticText2.SetLabel(conf.get('Languages', 'desco'))
+			self.time2fluency = datetime.timedelta(hours=900)
+		else:
+			self.staticText2.SetLabel("")
+		self.Layout()
+
+	def startStop(self, event):
+		if self.timer.IsRunning():
+			self.timer.Stop()
+			self.start_stop_button.SetLabel("Start")
+		else:
+			self.timer.Start()
+			self.start_stop_button.SetLabel("Pause")
+
+	def update(self, event):
+		self.staticText2.SetLabel(str(self.time2fluency))
+		self.time2fluency = self.time2fluency  - datetime.timedelta(seconds=1)
+
 app = wx.App(False)
 frame = MainWindow(None, "Fluency Countdown")
 app.MainLoop()
-
